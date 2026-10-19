@@ -1,9 +1,8 @@
 /**
  * Helpers shared across `AgentTarget` implementations.
  *
- * Lifted from the original `config-writer.ts` so each target can
- * compose them without inheritance. Kept deliberately small — the
- * targets are different enough (JSON vs TOML vs Markdown, varying
+ * Each target composes them without inheritance. Kept deliberately
+ * small — the targets are different enough (JSON vs TOML vs Markdown, varying
  * idempotency markers) that a base class would force the awkward
  * shape onto everyone.
  */
@@ -18,7 +17,7 @@ import {
 
 /**
  * The MCP-server config block codegraph injects. Same shape across
- * all JSON-shaped agent configs (Claude, Cursor, opencode), only the
+ * all JSON-shaped agent configs (Cursor, opencode, Gemini), only the
  * surrounding wrapper differs. Codex (TOML) builds its own block.
  */
 export function getMcpServerConfig(): { type: string; command: string; args: string[] } {
@@ -27,25 +26,6 @@ export function getMcpServerConfig(): { type: string; command: string; args: str
     command: 'codegraph',
     args: ['serve', '--mcp'],
   };
-}
-
-/**
- * Permissions list for Claude `settings.json`. Other targets that
- * have a permissions concept can compose this list directly.
- *
- * One server-scoped wildcard rather than a per-tool list. By default only
- * `codegraph_explore` is even LISTED to the agent (see DEFAULT_MCP_TOOLS in
- * mcp/tools.ts), so in practice explore is the only tool this auto-approves —
- * but the wildcard means that if a user re-enables another tool via
- * CODEGRAPH_MCP_TOOLS, it's already pre-approved (no permission prompt, no
- * hand-editing settings.json), and future tools are covered too. Claude only
- * honors globs after a literal `mcp__<server>__` prefix, so this exact string
- * is the way to allow-all for one server; a bare `mcp__codegraph` or `*` is
- * ignored. The allowlist gates PROMPTING, not visibility, so a superset here
- * never makes a hidden tool appear.
- */
-export function getCodeGraphPermissions(): string[] {
-  return ['mcp__codegraph__*'];
 }
 
 /**
@@ -157,7 +137,7 @@ export function jsonDeepEqual(a: unknown, b: unknown): boolean {
 /**
  * Replace or append a marker-delimited section in a markdown-ish file.
  *
- * Used by Claude / Codex for the `<!-- CODEGRAPH_START --> ... <!--
+ * Used by Codex / Gemini / opencode for the `<!-- CODEGRAPH_START --> ... <!--
  * CODEGRAPH_END -->` block. Preserves all content outside the
  * markers verbatim.
  *
@@ -202,7 +182,7 @@ export function replaceOrAppendMarkedSection(
 
 /**
  * Upsert the CodeGraph instructions block into an agent instructions
- * file (CLAUDE.md / AGENTS.md / GEMINI.md). The one write shared by
+ * file (AGENTS.md / GEMINI.md). The one write shared by
  * every target: self-heals a stale pre-#529 long block (markers match →
  * replaced by the current short one), appends after existing user
  * content otherwise, and reports `unchanged` on byte-equal re-runs so
@@ -223,8 +203,7 @@ export function upsertInstructionsEntry(file: string): { path: string; action: '
 /**
  * Inverse of `replaceOrAppendMarkedSection`. Strips the marker
  * block from `filePath` if present. If the file becomes empty after
- * removal, deletes the file entirely (matches the existing Claude
- * uninstall behavior).
+ * removal, deletes the file entirely.
  *
  * Returns `removed` when content was stripped, `not-found` when
  * the markers weren't present, `kept` when the file didn't exist.

@@ -6,7 +6,7 @@ import { CodeGraph } from '../src';
 import { extractProseCandidates } from '../src/search/identifier-segments';
 
 /**
- * The graph-derived gate behind the prompt hook's MEDIUM tier: symbol names
+ * The graph-derived prose → symbol lookup: symbol names
  * are segmented into the words a human uses for them in prose
  * (name_segment_vocab, populated on the node write path), and
  * CodeGraph.getSegmentMatches verifies prompt words against them with
@@ -142,10 +142,10 @@ export function writeConfig(): void {}
     expect(cg.getSegmentMatches(['checkout']).map((m) => m.name)).toContain('CheckoutService');
   });
 
-  it('healSegmentVocabIfEmpty backfills WITHOUT a sync — the prompt-hook open path (#1142)', async () => {
-    // The hook opens the graph without syncing, and a database migrated from
-    // before the vocab table existed starts with it empty — sync's backfill
-    // never runs on that path, leaving the MEDIUM tier permanently dormant.
+  it('healSegmentVocabIfEmpty backfills WITHOUT a sync (#1142)', async () => {
+    // A caller that opens the graph without syncing on a database migrated
+    // from before the vocab table existed sees it empty — sync's backfill
+    // never runs on that path.
     const queries = (cg as unknown as {
       queries: { clearNameSegmentVocab(): void; isNameSegmentVocabEmpty(): boolean };
     }).queries;

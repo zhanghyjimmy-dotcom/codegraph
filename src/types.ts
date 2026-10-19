@@ -490,8 +490,7 @@ export interface SearchResult {
 
 /**
  * A symbol whose name-segments match prose words from a prompt — the
- * graph-derived signal behind the front-load hook's medium tier
- * (CodeGraph.getSegmentMatches). Always verified to exist in `nodes` at the
+ * graph-derived signal returned by CodeGraph.getSegmentMatches. Always verified to exist in `nodes` at the
  * time it is returned.
  */
 export interface SegmentMatch {
@@ -650,7 +649,7 @@ export interface BuildContextOptions {
 }
 
 /**
- * Full context for a task, ready for Claude
+ * Full context for a task, ready for an AI agent
  */
 export interface TaskContext {
   /** The original query/task */

@@ -300,15 +300,6 @@ export interface UpgradeDeps {
   error: (msg: string) => void;
   platform: NodeJS.Platform;
   /**
-   * Wire Claude Code's front-load prompt hook into the GLOBAL Claude profile
-   * when that profile already has CodeGraph configured; resolves true when it
-   * changed the settings file. That file is the user's real
-   * `~/.claude/settings.json`, so the writer is injected like every other side
-   * effect here — the CLI passes {@link defaultWirePromptHook}, unit tests a
-   * recorder (#2275: tests that reached the real one rewrote the developer's).
-   */
-  wirePromptHook: () => Promise<boolean>;
-  /**
    * Offer the one-time CodeGraph Pro beta opt-in after a successful update
    * (see installer/beta-signup — self-gating: TTY only, and silent forever
    * once any install/upgrade ask was answered). Optional so unit tests and
@@ -375,8 +366,8 @@ export async function runUpgrade(opts: UpgradeOptions, deps: UpgradeDeps): Promi
   }
 
   // Dispatch by install method. bundle/npm perform a real binary update, so
-  // after they succeed we self-heal the front-load hook (below); npx/source/
-  // unknown don't update anything here, so they return directly.
+  // after they succeed we refresh the installed agent surfaces (below);
+  // npx/source/unknown don't update anything here, so they return directly.
   let code: number;
   switch (method.kind) {
     case 'bundle':
@@ -403,23 +394,12 @@ export async function runUpgrade(opts: UpgradeOptions, deps: UpgradeDeps): Promi
       return 1;
   }
 
-  // After a successful update, ensure the front-load prompt hook is wired for an
-  // already-configured global Claude install — so existing users pick it up on
-  // upgrade, not only on a fresh `install` (the hook config is version-agnostic,
-  // so the still-running old binary can write it safely). Idempotent + gated on
-  // an existing Claude config, and skipped entirely by the kill-switch. Never
-  // fatal to the upgrade.
   if (code === 0) {
     let probe: VersionProbe = 'inconclusive';
     try {
       probe = reportResolvedVersion(latest, deps);
     } catch {
       /* an inconclusive probe must not fail the upgrade */
-    }
-    try {
-      await selfHealPromptHook(deps);
-    } catch {
-      /* a hook-wiring hiccup must not fail the upgrade */
     }
     // The refresh executes whatever `codegraph` PATH resolves. If the probe
     // just proved that's a stale shadowed install, spawning it would rewrite
@@ -506,14 +486,14 @@ function reportResolvedVersion(latest: string, deps: UpgradeDeps): VersionProbe 
 
 /**
  * Refresh the agent surfaces previous installs wrote — the marker-fenced
- * instructions sections (CLAUDE.md / AGENTS.md / GEMINI.md), MCP entries,
+ * instructions sections (AGENTS.md / GEMINI.md), MCP entries,
  * legacy-hook cleanups — so they match the version that will serve them.
- * Unlike the prompt hook above, this content is NOT version-agnostic: the
+ * This content is NOT version-agnostic: the
  * templates are baked into the binary, so the still-running old process
  * would only rewrite its own stale copy — the exact staleness this heals.
  * We therefore spawn the freshly-installed binary (`codegraph install
  * --refresh`), which is refresh-only: agents never configured stay
- * untouched, and permission / prompt-hook choices are preserved. Gated on
+ * untouched. Gated on
  * `codegraph` being resolvable on PATH (an npm-local install isn't) and on
  * the kill-switch; never fatal to the upgrade.
  */
@@ -529,20 +509,6 @@ function selfHealInstalledSurfaces(deps: UpgradeDeps): void {
     : deps.run('codegraph', ['install', '--refresh']);
   if (code !== 0) {
     deps.warn('Could not refresh the installed agent surfaces — run `codegraph install --refresh` manually.');
-  }
-}
-
-/**
- * Wire the Claude `UserPromptSubmit` front-load hook on upgrade for an
- * already-configured global Claude install. No-op when Claude isn't configured,
- * when the hook is already present, or when the kill-switch is set.
- */
-async function selfHealPromptHook(deps: UpgradeDeps): Promise<void> {
-  if (process.env.CODEGRAPH_NO_PROMPT_HOOK === '1' || process.env.CODEGRAPH_PROMPT_HOOK === '0') return;
-  if (await deps.wirePromptHook()) {
-    deps.log(
-      c.dim('Enabled the CodeGraph front-load hook for Claude Code (structural prompts). Disable any time: CODEGRAPH_NO_PROMPT_HOOK=1'),
-    );
   }
 }
 
@@ -833,16 +799,4 @@ export function defaultCapture(cmd: string, args: string[]): { code: number; std
   const r = spawnSync(cmd, args, { encoding: 'utf-8', windowsHide: true, timeout: 30_000 });
   if (r.error) return null;
   return { code: r.status ?? -1, stdout: r.stdout ?? '' };
-}
-
-/**
- * The production `UpgradeDeps.wirePromptHook`: writes the hook only when the
- * global Claude profile already carries CodeGraph's MCP entry, and leaves the
- * file byte-for-byte alone once the hook is there.
- */
-export async function defaultWirePromptHook(): Promise<boolean> {
-  const { claudeTarget, writePromptHookEntry } = await import('../installer/targets/claude');
-  if (!claudeTarget.detect('global').alreadyConfigured) return false;
-  const res = writePromptHookEntry('global');
-  return res.action === 'created' || res.action === 'updated';
 }

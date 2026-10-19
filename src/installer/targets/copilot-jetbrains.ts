@@ -25,8 +25,7 @@
  *     resolve the project from the client's roots/cwd as with other
  *     global installs.
  *   - No instructions file (MCP `initialize` instructions are the
- *     single source of truth, #529) and no permissions concept —
- *     `autoAllow` is silently ignored.
+ *     single source of truth, #529) and no permissions concept.
  *
  * The IDE opens this file in a JSON editor for hand-editing (Settings →
  * Tools → GitHub Copilot → MCP → Configure), so reads + writes go
@@ -45,7 +44,6 @@ import { parse as parseJsonc, modify, applyEdits } from 'jsonc-parser';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -145,7 +143,7 @@ class CopilotJetbrainsTarget implements AgentTarget {
     return { installed, alreadyConfigured, configPath: file };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     if (loc !== 'global') {
       return {
         files: [],

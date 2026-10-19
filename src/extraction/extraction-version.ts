@@ -18,7 +18,6 @@
  * extractor, a new dynamic-dispatch synthesizer, a new node/edge kind, or a
  * resolver fix that materially changes which edges exist. Do NOT bump for
  * pure bug fixes, CLI/UX changes, or schema-only migrations. Over-bumping
- * turns the re-index hint into noise — keep it honest (see CLAUDE.md, "Honesty
- * in the product is load-bearing").
+ * turns the re-index hint into noise — keep it honest.
  */
 export const EXTRACTION_VERSION = 28;

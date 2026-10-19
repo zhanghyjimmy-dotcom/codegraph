@@ -505,9 +505,8 @@ describe('Atomic Writes', () => {
   });
 
   it('should not leave temp files on success', () => {
-    // We test this indirectly through the config-writer module
-    // by checking that no .tmp files remain after writing
-    const configDir = path.join(tempDir, '.claude');
+    // Check that no .tmp files remain after writing
+    const configDir = path.join(tempDir, '.config');
     fs.mkdirSync(configDir, { recursive: true });
 
     const testFile = path.join(configDir, 'test.json');

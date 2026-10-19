@@ -2,7 +2,7 @@
  * GitHub Copilot CLI target.
  *
  *   - MCP server entry to `~/.copilot/mcp-config.json` under the
- *     `mcpServers` key (same wrapper as Claude/Cursor). Entry shape per
+ *     `mcpServers` key (same wrapper as Cursor). Entry shape per
  *     the GitHub docs: `{ "type": "stdio", "command", "args", "tools" }`
  *     — `type` accepts `"local"` or `"stdio"`; we write `"stdio"` (the
  *     standard MCP name, recommended by the docs for cross-client
@@ -24,8 +24,7 @@
  * servers.
  *
  * No instructions file (MCP `initialize` instructions are the single
- * source of truth, #529) and no permissions concept — `autoAllow` is
- * silently ignored.
+ * source of truth, #529) and no permissions concept.
  */
 
 import * as fs from 'fs';
@@ -34,7 +33,6 @@ import * as os from 'os';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -126,7 +124,7 @@ class CopilotCliTarget implements AgentTarget {
     return { installed, alreadyConfigured, configPath: file };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     if (loc !== 'global') {
       return {
         files: [],

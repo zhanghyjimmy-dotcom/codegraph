@@ -2,8 +2,8 @@
  * Cursor target.
  *
  *   - MCP server entry to `~/.cursor/mcp.json` (global) or
- *     `./.cursor/mcp.json` (local). Same `{mcpServers: {...}}` shape
- *     as Claude.
+ *     `./.cursor/mcp.json` (local). Standard `{mcpServers: {...}}`
+ *     shape.
  *   - Instructions to `./.cursor/rules/codegraph.mdc` (project-local
  *     ONLY). Cursor's rules system is a project-scoped surface;
  *     global cursor rules aren't a stable convention as of 2026-05.
@@ -24,11 +24,11 @@
  *     the open workspace's root, giving us per-workspace behavior
  *     from a single global config.
  *
- * Codex and Claude do not need this — they launch MCP servers with
- * `cwd = workspace` and pass `rootUri`, respectively.
+ * Codex does not need this — it launches MCP servers with
+ * `cwd = workspace`.
  *
  * No permissions concept — Cursor doesn't have an auto-allow list
- * the installer can populate. `autoAllow` is silently ignored.
+ * the installer can populate.
  */
 
 import * as fs from 'fs';
@@ -37,7 +37,6 @@ import * as os from 'os';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -105,7 +104,7 @@ class CursorTarget implements AgentTarget {
     return { installed, alreadyConfigured, configPath: mcpPath };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     const files: WriteResult['files'] = [];
 
     files.push(writeMcpEntry(loc));
@@ -194,7 +193,7 @@ function writeMcpEntry(loc: Location): WriteResult['files'][number] {
  * Remove the Cursor rules file on uninstall (and as a self-heal on
  * install — see issue #529).
  *
- * Unlike the shared CLAUDE.md / AGENTS.md files (where codegraph owns
+ * Unlike the shared AGENTS.md / GEMINI.md files (where codegraph owns
  * only a marker-delimited section), `.cursor/rules/codegraph.mdc` is a
  * file we create OUTRIGHT — the frontmatter is ours too. So a plain
  * `removeMarkedSection` is wrong here: it would strip our instruction

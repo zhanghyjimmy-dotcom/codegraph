@@ -3,11 +3,10 @@ title: Integrations
 description: Supported agents, and manual MCP setup.
 ---
 
-The interactive installer auto-detects and configures each supported agent — wiring the CodeGraph MCP server into each. For the agents that use an instructions file, it also writes a short marker-fenced CodeGraph section (`CLAUDE.md`, `AGENTS.md`, or `GEMINI.md`) so subagents and non-MCP harnesses learn the `codegraph explore` command; `codegraph uninstall` removes it.
+The interactive installer auto-detects and configures each supported agent — wiring the CodeGraph MCP server into each. For the agents that use an instructions file, it also writes a short marker-fenced CodeGraph section (`AGENTS.md` or `GEMINI.md`) so subagents and non-MCP harnesses learn the `codegraph explore` command; `codegraph uninstall` removes it.
 
 ## Supported agents
 
-- **Claude Code**
 - **Cursor**
 - **Codex CLI**
 - **opencode**
@@ -26,7 +25,7 @@ If you'd rather wire it up yourself, install globally:
 npm install -g @colbymchenry/codegraph
 ```
 
-Add the MCP server to `~/.claude.json`:
+Add the MCP server to your agent's MCP config (e.g. `~/.cursor/mcp.json`):
 
 ```json
 {
@@ -40,19 +39,7 @@ Add the MCP server to `~/.claude.json`:
 }
 ```
 
-Optionally auto-allow CodeGraph's tools in `~/.claude/settings.json`:
-
-```json
-{
-  "permissions": {
-    "allow": [
-      "mcp__codegraph__*"
-    ]
-  }
-}
-```
-
-One wildcard auto-approves every CodeGraph tool. The server lists a single tool by default — `codegraph_explore` — but if you re-enable others via the `CODEGRAPH_MCP_TOOLS` environment variable, they're already permitted with no prompt.
+`codegraph install --print-config <id>` prints the exact snippet for any supported agent.
 
 :::tip
 Cursor launches MCP subprocesses with the wrong working directory. The installer handles this for you by injecting a `--path` argument; if you wire Cursor up by hand, pass the project path explicitly.

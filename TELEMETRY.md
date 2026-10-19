@@ -56,7 +56,7 @@ Every payload carries this envelope:
 And one of four events:
 
 - **`install`** — when `codegraph install` configures agents: which agents
-  (`["claude","cursor",…]`), global vs project-local, and whether it was a fresh install,
+  (`["cursor","codex",…]`), global vs project-local, and whether it was a fresh install,
   an upgrade, or a re-run.
 - **`index`** — when a full index completes: the **language names** present (e.g.
   `["typescript","go"]`), the file count as a **coarse bucket** (`<100`, `100-1k`,
@@ -64,9 +64,7 @@ And one of four events:
 - **`usage_rollup`** — one line per day per tool: the tool or CLI command **name** (e.g.
   `codegraph_explore`, `init`), how many times it ran, how many errored, and — for MCP
   tools — the connecting agent's name and version from the MCP handshake (e.g.
-  `Claude Code 2.1`). The Claude Code prompt hook also counts its **gate decision**
-  (fired fully, fired as a hint, or did nothing — fixed counter names like
-  `prompt-hook-gate-medium-segment`); the prompt itself is never read, stored, or sent.
+  `Cursor 1.2`).
 - **`uninstall`** — when `codegraph uninstall`/`uninit` runs: which agents were removed.
 
 Usage is **aggregated locally into daily totals** before anything is sent — there is no

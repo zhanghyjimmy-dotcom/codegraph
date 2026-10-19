@@ -3,8 +3,7 @@
  *
  * When an MCP host launches the server from a workspace root whose indexed
  * projects live in CHILD directories (a repo container, a monorepo root), the
- * upward walk finds nothing. The server now runs the same bounded down-scan
- * the front-load hook uses:
+ * upward walk finds nothing. The server now runs a bounded down-scan:
  *   - exactly ONE indexed sub-project  → adopted as the session's default;
  *   - zero or several                  → no default, but the state is SAID:
  *     stderr names what was searched/found, and tool calls list the indexed

@@ -11,10 +11,10 @@
  *     VS Code moved MCP config out of settings.json into this dedicated
  *     `mcp.json` (v1.102, "MCP: Open User Configuration"). Shape is
  *     `{ "servers": { "<name>": { "type": "stdio", "command", "args" } } }`
- *     — note `servers`, not the `mcpServers` wrapper Claude/Cursor use.
+ *     — note `servers`, not the `mcpServers` wrapper Cursor uses.
  *   - No instructions file: Copilot Chat consumes the MCP `initialize`
  *     instructions, the single source of truth (#529).
- *   - No permissions concept — `autoAllow` is silently ignored.
+ *   - No permissions concept.
  *
  * ## Why `--path` only for local installs (NOT the Cursor pattern)
  *
@@ -50,7 +50,6 @@ import { parse as parseJsonc, modify, applyEdits } from 'jsonc-parser';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -136,7 +135,7 @@ class CopilotVscodeTarget implements AgentTarget {
     return { installed, alreadyConfigured, configPath: file };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     return {
       files: [writeMcpEntry(loc)],
       notes: ['Restart VS Code for MCP changes to take effect.'],

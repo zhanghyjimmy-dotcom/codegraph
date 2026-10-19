@@ -35,7 +35,6 @@ import * as os from 'os';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -112,7 +111,7 @@ class CodexTarget implements AgentTarget {
     return { installed, alreadyConfigured, configPath: tomlPath };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     const files: WriteResult['files'] = [];
 
     files.push(writeMcpEntry(loc));

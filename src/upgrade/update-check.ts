@@ -2,7 +2,7 @@
  * Background update-availability check for long-lived servers (#1243).
  *
  * The recommended MCP config launches the LOCAL `codegraph` binary, so the
- * server (and the prompt hook alongside it) silently stays on whatever version
+ * server silently stays on whatever version
  * was last manually upgraded — users discover the drift only when something
  * breaks. This module gives the running server *visibility* without changing
  * behavior: a non-blocking check against the latest GitHub release, surfaced

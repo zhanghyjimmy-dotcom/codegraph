@@ -2,7 +2,7 @@
  * CodeGraph MCP Server
  *
  * Model Context Protocol server that exposes CodeGraph functionality
- * as tools for AI assistants like Claude.
+ * as tools for AI assistants.
  *
  * @module mcp
  *

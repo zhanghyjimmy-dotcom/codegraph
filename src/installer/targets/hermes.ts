@@ -20,7 +20,6 @@ import * as os from 'os';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -51,7 +50,7 @@ class HermesTarget implements AgentTarget {
     };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     if (loc !== 'global') {
       return {
         files: [],

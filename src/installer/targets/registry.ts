@@ -8,7 +8,6 @@
  */
 
 import { AgentTarget, Location, TargetId } from './types';
-import { claudeTarget } from './claude';
 import { cursorTarget } from './cursor';
 import { codexTarget } from './codex';
 import { opencodeTarget } from './opencode';
@@ -21,7 +20,6 @@ import { copilotCliTarget } from './copilot-cli';
 import { copilotJetbrainsTarget } from './copilot-jetbrains';
 
 export const ALL_TARGETS: readonly AgentTarget[] = Object.freeze([
-  claudeTarget,
   cursorTarget,
   codexTarget,
   opencodeTarget,
@@ -62,21 +60,19 @@ export function detectAll(loc: Location): Array<{
  * Resolve a `--target=` flag value to a list of `AgentTarget`
  * instances. Accepts:
  *
- *   - `auto` — return all targets whose `detect().installed` is true,
- *     or `['claude']` as a fallback if none detected (least-surprise
- *     for existing users).
+ *   - `auto` — return all targets whose `detect().installed` is true
+ *     (empty when none are detected).
  *   - `all` — every target in the registry.
  *   - `none` — empty list (caller skips agent writes entirely).
- *   - csv list — `'claude,cursor'` etc. Unknown ids throw.
+ *   - csv list — `'cursor,codex'` etc. Unknown ids throw.
  */
 export function resolveTargetFlag(value: string, loc: Location): AgentTarget[] {
   if (value === 'none') return [];
   if (value === 'all') return [...ALL_TARGETS];
   if (value === 'auto') {
-    const detected = detectAll(loc).filter(({ detection }) => detection.installed);
-    if (detected.length > 0) return detected.map(({ target }) => target);
-    const fallback = getTarget('claude');
-    return fallback ? [fallback] : [];
+    return detectAll(loc)
+      .filter(({ detection }) => detection.installed)
+      .map(({ target }) => target);
   }
 
   const ids = value.split(',').map((s) => s.trim()).filter(Boolean);

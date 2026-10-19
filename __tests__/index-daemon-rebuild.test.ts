@@ -12,7 +12,7 @@ const bin = path.resolve(__dirname, '../dist/bin/codegraph.js');
 let root: string;
 let children: ChildProcessWithoutNullStreams[];
 const env = { ...process.env, CODEGRAPH_TELEMETRY: '0', DO_NOT_TRACK: '1',
-  CODEGRAPH_NO_PROMPT_HOOK: '1', CODEGRAPH_NO_DAEMON: '', CODEGRAPH_DAEMON_IDLE_TIMEOUT_MS: '60000' };
+  CODEGRAPH_NO_DAEMON: '', CODEGRAPH_DAEMON_IDLE_TIMEOUT_MS: '60000' };
 
 async function until<T>(fn: () => T, timeout = 20000): Promise<NonNullable<T>> {
   const end = Date.now() + timeout;

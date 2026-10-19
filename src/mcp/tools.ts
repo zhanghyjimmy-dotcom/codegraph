@@ -1481,12 +1481,6 @@ export interface ToolDefinition {
   };
   /** Behavioral hints for clients (see {@link ToolAnnotations}). */
   annotations?: ToolAnnotations;
-  /**
-   * MCP `_meta` on the tool definition. `anthropic/alwaysLoad: true` makes
-   * Claude Code load the tool at session start instead of deferring it behind
-   * its tool search (https://code.claude.com/docs/en/mcp#exempt-a-server-from-deferral).
-   */
-  _meta?: Record<string, unknown>;
 }
 
 /**
@@ -1743,9 +1737,6 @@ export const tools: ToolDefinition[] = [
       required: ['query'],
     },
     annotations: READ_ONLY_ANNOTATIONS,
-    // Loaded from the first prompt in Claude Code, which otherwise defers every
-    // MCP tool behind a ToolSearch step (#1696).
-    _meta: { 'anthropic/alwaysLoad': true },
   },
   {
     name: 'codegraph_status',
@@ -6125,7 +6116,7 @@ export class ToolHandler {
           // a Read of the very file just skeletonized; on a central, wanted file
           // (Session.swift, DataRequest.swift) that fired an over-investigation
           // spiral (the agent Read the skeletonized file, then kept digging).
-          // CLAUDE.md: explore output must never tell the agent to Read.
+          // AGENTS.md: explore output must never tell the agent to Read.
           const tag = bodyIds.size + bodyWindows.size > 0
             ? 'focused (the methods you named in full, the rest as signatures — codegraph_explore a signature by name for its body; do NOT Read)'
             : 'skeleton (signatures only — codegraph_explore a name for its full body; do NOT Read)';

@@ -1,7 +1,7 @@
 /**
  * The suite's home-dir sandbox (`setup-home-sandbox.ts`, #2275) is in force:
  * nothing a test runs — in-process or spawned — resolves the developer's real
- * home, Claude profile, daemon registry or git identity.
+ * home, agent profiles, daemon registry or git identity.
  */
 import { describe, it, expect, inject } from 'vitest';
 import type { GlobalSetupContext } from 'vitest/node';
@@ -9,7 +9,7 @@ import { execFileSync } from 'child_process';
 import * as fs from 'fs';
 import * as os from 'os';
 import * as path from 'path';
-import { claudeTarget } from '../src/installer/targets/claude';
+import { codexTarget } from '../src/installer/targets/codex';
 import { getRegistryDir } from '../src/mcp/daemon-registry';
 import setupHomeSandboxRun from './global-setup-home-sandbox';
 
@@ -30,10 +30,10 @@ describe('test home sandbox', () => {
     expect(home).not.toBe(os.userInfo().homedir);
   });
 
-  it('the global Claude profile and the daemon registry resolve inside it', () => {
+  it('the global Codex profile and the daemon registry resolve inside it', () => {
     const home = sandboxHome();
-    expect(process.env.CLAUDE_CONFIG_DIR).toBeUndefined();
-    expect(under(claudeTarget.detect('global').configPath, home)).toBe(true);
+    expect(process.env.CODEX_HOME).toBeUndefined();
+    expect(under(codexTarget.detect('global').configPath!, home)).toBe(true);
     expect(under(getRegistryDir(), home)).toBe(true);
   });
 
