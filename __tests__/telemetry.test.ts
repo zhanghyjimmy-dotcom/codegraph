@@ -222,7 +222,7 @@ describe('Telemetry', () => {
 
     it('lifecycle events send on the next flush regardless of day', async () => {
       const t = make();
-      t.recordLifecycle('install', { targets: ['claude'], scope: 'local', kind: 'fresh' });
+      t.recordLifecycle('install', { targets: ['cursor'], scope: 'local', kind: 'fresh' });
       await t.flushNow();
       expect(calls).toHaveLength(1);
       const events = calls[0]!.body.events as Array<{ event: string; props: Record<string, unknown> }>;

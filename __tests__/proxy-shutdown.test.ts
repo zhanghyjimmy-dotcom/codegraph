@@ -66,7 +66,7 @@ function startProxy(script: string, env: Record<string, string> = {}): Proxy {
   const child = spawn(process.execPath, ['-e', PRELUDE + script], {
     env: {
       ...process.env,
-      CODEGRAPH_TELEMETRY: '0', DO_NOT_TRACK: '1', CODEGRAPH_NO_PROMPT_HOOK: '1',
+      CODEGRAPH_TELEMETRY: '0', DO_NOT_TRACK: '1',
       CODEGRAPH_NO_WATCHDOG: '1', CODEGRAPH_PPID_POLL_MS: '0',
       CODEGRAPH_STARTUP_HANDSHAKE_TIMEOUT_MS: '0',
       CODEGRAPH_DAEMON_RETRY_MS: '200',

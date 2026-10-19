@@ -6,7 +6,7 @@
  *
  *   - MCP server entry to `~/.gemini/settings.json` (global) or
  *     `./.gemini/settings.json` (local) under the standard
- *     `mcpServers.codegraph` key. Same shape as Claude / Cursor.
+ *     `mcpServers.codegraph` key. Same shape as Cursor.
  *   - Instructions to `~/.gemini/GEMINI.md` (global) or `./GEMINI.md`
  *     (local — Gemini reads the project root file directly, not
  *     under `.gemini/`).
@@ -28,7 +28,6 @@ import * as os from 'os';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -81,7 +80,7 @@ class GeminiTarget implements AgentTarget {
     return { installed, alreadyConfigured, configPath: file };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     const files: WriteResult['files'] = [];
     files.push(writeMcpEntry(loc));
 

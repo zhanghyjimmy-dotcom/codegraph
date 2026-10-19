@@ -1,19 +1,17 @@
 /**
  * Give every engine test file a throwaway home directory (#2275).
  *
- * The suite exercises code that writes to the user's GLOBAL state: the Claude
- * prompt hook in `~/.claude/settings.json`, the daemon registry under
- * `~/.codegraph/daemons`, every agent target's global config. A test that
- * forgot to redirect the home dir wrote to the developer's real one — a
- * successful fake `codegraph upgrade` wired the prompt hook into their own
- * Claude profile, and the daemon suites left thousands of registry records
- * behind. CI never noticed: its runners have no Claude profile to edit.
+ * The suite exercises code that writes to the user's GLOBAL state: the daemon
+ * registry under `~/.codegraph/daemons` and every agent target's global
+ * config. A test that forgot to redirect the home dir wrote to the
+ * developer's real one — the daemon suites left thousands of registry records
+ * behind. CI never noticed: its runners have no such state to edit.
  *
  * So the home dir is redirected here, before any test module loads, rather
  * than file by file. Everything that resolves a home dir is covered:
  * `os.homedir()` reads HOME on POSIX but USERPROFILE on Windows; git on
  * Windows falls back to HOMEDRIVE+HOMEPATH; the per-agent overrides
- * (CLAUDE_CONFIG_DIR, CODEX_HOME, ...) win over either, so they are cleared;
+ * (CODEX_HOME, COPILOT_HOME, ...) win over either, so they are cleared;
  * and git's global config is pinned to a seeded file, so a test's `git
  * commit` neither reads the developer's identity, signing or hooks nor
  * depends on them. Spawned CLI / MCP processes inherit all of it.
@@ -54,7 +52,7 @@ if (process.platform === 'win32') {
   delete process.env.LOCALAPPDATA;
 }
 process.env.XDG_CONFIG_HOME = path.join(home, '.config');
-for (const override of ['CLAUDE_CONFIG_DIR', 'CODEX_HOME', 'COPILOT_HOME', 'HERMES_HOME']) {
+for (const override of ['CODEX_HOME', 'COPILOT_HOME', 'HERMES_HOME']) {
   delete process.env[override];
 }
 

@@ -1,5 +1,5 @@
 /**
- * Identifier-segment utilities for the prompt hook's graph-derived gate
+ * Identifier-segment utilities for the graph-derived prose lookup
  * (name_segment_vocab): symbol names split into the words a human would use
  * for them in prose, and prompt prose normalized into candidate words to look
  * those segments up with.
@@ -128,7 +128,7 @@ export function extractProseCandidates(prompt: string): string[] {
 
 /**
  * Words to look up in the segment vocabulary for a SEARCH query (as opposed
- * to a prompt-hook gate): the query's prose candidates PLUS the segments of
+ * to a bare prompt): the query's prose candidates PLUS the segments of
  * its identifier-shaped tokens. An agent's query names concepts both ways —
  * "auto-scroll to bottom" (prose) and "atBottom tracking" (camel) — and the
  * camel token must still reach the segment "bottom" even though the whole

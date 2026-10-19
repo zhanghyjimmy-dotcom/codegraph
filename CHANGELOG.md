@@ -12,6 +12,10 @@ and adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+### Breaking Changes
+
+- Claude Code is no longer supported: `codegraph install` and upgrades no longer write Claude Code's MCP config, permissions or prompt hook, and the `prompt-hook` command is gone — if you set up Claude Code with an earlier version, remove the `codegraph` entries from `~/.claude.json` (or `.mcp.json`) and the `codegraph prompt-hook` hook from `~/.claude/settings.json`.
+
 ### Fixes
 
 - In VB.NET, every member of a `Structure` is now indexed, including its fields, properties, methods, constructors and nested enums. Before, only the first member was, so the rest could not be found and their callers looked empty.

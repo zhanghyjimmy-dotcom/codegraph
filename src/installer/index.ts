@@ -2,11 +2,9 @@
  * CodeGraph Interactive Installer
  *
  * Multi-target: writes MCP server config + instructions for the
- * agents the user picks (Claude Code, Cursor, Codex CLI, opencode,
- * Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, and GitHub
- * Copilot in VS Code / the Copilot CLI / JetBrains IDEs).
- * Defaults to the Claude-only behavior for backwards compatibility
- * when no targets are explicitly chosen and nothing else is detected.
+ * agents the user picks (Cursor, Codex CLI, opencode, Hermes Agent,
+ * Gemini CLI, Antigravity IDE, Kiro, and GitHub Copilot in VS Code /
+ * the Copilot CLI / JetBrains IDEs).
  *
  * Uses @clack/prompts for the interactive UI; `runInstallerWithOptions`
  * is the non-interactive entry point used by the `--target` /
@@ -32,17 +30,6 @@ import { getCodeGraphDir } from '../directory';
 import { getTelemetry, TELEMETRY_DOCS } from '../telemetry';
 import { maybeOfferBetaSignup } from './beta-signup';
 
-// Backwards-compat: keep these named exports — downstream code may
-// import them. The shim in `config-writer.ts` continues to re-export
-// them too.
-export {
-  writeMcpConfig,
-  writePermissions,
-  hasMcpConfig,
-  hasPermissions,
-} from './config-writer';
-export type { InstallLocation } from './config-writer';
-
 // Dynamic import helper — tsc compiles import() to require() in CJS mode,
 // which fails for ESM-only packages. This bypasses the transformation.
 // eslint-disable-next-line @typescript-eslint/no-implied-eval
@@ -65,11 +52,9 @@ export interface RunInstallerOptions {
   target?: string;
   /** Skip the location prompt; use this value directly. */
   location?: Location;
-  /** Skip the auto-allow prompt; use this value directly. */
-  autoAllow?: boolean;
   /**
    * Skip every confirm and use defaults: location=global,
-   * autoAllow=true, target=auto. For scripting / CI.
+   * target=auto. For scripting / CI.
    */
   yes?: boolean;
 }
@@ -148,8 +133,8 @@ export async function runInstallerWithOptions(opts: RunInstallerOptions): Promis
       const sel = await clack.select({
         message: 'Apply agent configs to all your projects, or just this one?',
         options: [
-          { value: 'global' as const, label: 'All projects', hint: '~/.claude, ~/.cursor, etc.' },
-          { value: 'local'  as const, label: 'Just this project', hint: './.claude, ./.cursor, etc.' },
+          { value: 'global' as const, label: 'All projects', hint: '~/.cursor, ~/.codex, etc.' },
+          { value: 'local'  as const, label: 'Just this project', hint: './.cursor, ./.vscode, etc.' },
         ],
         initialValue: 'global' as const,
       });
@@ -161,28 +146,7 @@ export async function runInstallerWithOptions(opts: RunInstallerOptions): Promis
     }
   }
 
-  // Step 4: auto-allow permissions (only meaningful for Claude;
-  // skipped silently by other targets).
-  let autoAllow: boolean;
-  if (opts.autoAllow !== undefined) {
-    autoAllow = opts.autoAllow;
-  } else if (useDefaults) {
-    autoAllow = true;
-  } else if (targets.some((t) => t.id === 'claude')) {
-    const ans = await clack.confirm({
-      message: 'Auto-allow CodeGraph commands? (Skips permission prompts in Claude Code)',
-      initialValue: true,
-    });
-    if (clack.isCancel(ans)) {
-      clack.cancel('Installation cancelled.');
-      process.exit(0);
-    }
-    autoAllow = ans;
-  } else {
-    autoAllow = false;
-  }
-
-  // Step 4½: anonymous usage telemetry — a visible default-on toggle, asked
+  // Step 4: anonymous usage telemetry — a visible default-on toggle, asked
   // exactly once. Skipped when an env var (DO_NOT_TRACK / CODEGRAPH_TELEMETRY)
   // already decides, or when a previous run stored a choice — re-runs and
   // upgrades never re-ask.
@@ -205,31 +169,6 @@ export async function runInstallerWithOptions(opts: RunInstallerOptions): Promis
     }
   }
 
-  // Step 4¾: front-load prompt hook (Claude Code only). A UserPromptSubmit hook
-  // that runs `codegraph prompt-hook` — it injects codegraph_explore context on
-  // structural ("how / where / trace / impact") prompts so the agent reliably
-  // reaches for the graph instead of grepping. Opt-in, default-yes. Only Claude
-  // Code has UserPromptSubmit, so it's offered only when Claude is a target;
-  // other targets ignore the option. `undefined` (no Claude / not asked) leaves
-  // any existing hook untouched.
-  let promptHook: boolean | undefined;
-  if (targets.some((t) => t.id === 'claude')) {
-    if (useDefaults) {
-      promptHook = true; // --yes → on
-    } else {
-      const ans = await clack.confirm({
-        message:
-          'Front-load CodeGraph on “how / where / trace” prompts? Auto-injects structural context so answers need fewer steps (adds a moment to those prompts; Claude Code only).',
-        initialValue: true,
-      });
-      if (clack.isCancel(ans)) {
-        clack.cancel('Installation cancelled.');
-        process.exit(0);
-      }
-      promptHook = ans; // false → opt out; install() strips any prior hook
-    }
-  }
-
   // Step 5: per-target install loop.
   const installedIds: TargetId[] = [];
   let sawCreated = false;
@@ -241,7 +180,7 @@ export async function runInstallerWithOptions(opts: RunInstallerOptions): Promis
       );
       continue;
     }
-    const result = target.install(location, { autoAllow, promptHook });
+    const result = target.install(location);
     installedIds.push(target.id);
     for (const file of result.files) {
       if (file.action === 'created') sawCreated = true;
@@ -405,11 +344,8 @@ export interface RefreshReport {
  * Without this, those files keep the wording — and the tool names — of
  * whatever version first wrote them, no matter how many upgrades later.
  *
- * Strictly a refresh, never a first install:
- *   - targets that aren't `alreadyConfigured` are skipped untouched;
- *   - permissions are not written (`autoAllow: false`) and the prompt
- *     hook is left as-is (`promptHook: undefined`), so choices the user
- *     made at install time — or by hand since — are preserved.
+ * Strictly a refresh, never a first install: targets that aren't
+ * `alreadyConfigured` are skipped untouched.
  *
  * Every write underneath is the targets' own idempotent upsert, so a
  * re-run on an already-current machine reports `unchanged` everywhere.
@@ -428,7 +364,7 @@ export function refreshTargets(
     if (!target.detect(location).alreadyConfigured) {
       return { ...base, status: 'not-configured' as const, changedPaths: [] };
     }
-    const result = target.install(location, { autoAllow: false, promptHook: undefined });
+    const result = target.install(location);
     const changedPaths = result.files
       .filter((f) => f.action === 'created' || f.action === 'updated' || f.action === 'removed')
       .map((f) => f.path);
@@ -458,7 +394,7 @@ export async function runUninstaller(opts: RunUninstallerOptions): Promise<void>
   const useDefaults = opts.yes === true;
 
   // Step 1: which location — asked FIRST, the one decision the user
-  // must make. Global sweeps ~/.claude, ~/.codex, etc.; local sweeps
+  // must make. Global sweeps ~/.cursor, ~/.codex, etc.; local sweeps
   // the configs in this project directory.
   let location: Location;
   if (opts.location) {
@@ -469,8 +405,8 @@ export async function runUninstaller(opts: RunUninstallerOptions): Promise<void>
     const sel = await clack.select({
       message: 'Remove CodeGraph from all your projects, or just this one?',
       options: [
-        { value: 'global' as const, label: 'All projects (global)', hint: '~/.claude, ~/.cursor, ~/.codex, ~/.config/opencode, ~/.hermes, ~/.gemini, ~/.kiro, ~/.copilot, ~/.config/github-copilot' },
-        { value: 'local'  as const, label: 'Just this project (local)', hint: './.claude, ./.cursor, ./.vscode, ./opencode.jsonc, ./.gemini, ./.kiro' },
+        { value: 'global' as const, label: 'All projects (global)', hint: '~/.cursor, ~/.codex, ~/.config/opencode, ~/.hermes, ~/.gemini, ~/.kiro, ~/.copilot, ~/.config/github-copilot' },
+        { value: 'local'  as const, label: 'Just this project (local)', hint: './.cursor, ./.vscode, ./opencode.jsonc, ./.gemini, ./.kiro' },
       ],
       initialValue: 'global' as const,
     });
@@ -621,9 +557,6 @@ async function resolveTargets(
   const initialValues = detected
     .filter(({ detection }) => detection.installed)
     .map(({ target }) => target.id);
-  // If nothing detected, default to Claude alone (matches the
-  // historical default and the smallest-surprise outcome).
-  const initial = initialValues.length > 0 ? initialValues : ['claude'];
 
   const choice = await clack.multiselect<string>({
     message: 'Which agents should CodeGraph configure?',
@@ -636,7 +569,7 @@ async function resolveTargets(
         label: `${t.displayName} ${flag}${globalOnly}`,
       };
     }),
-    initialValues: initial,
+    initialValues,
     required: false,
   });
 

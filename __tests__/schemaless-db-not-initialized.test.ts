@@ -17,7 +17,7 @@ import * as path from 'path';
 // eslint-disable-next-line @typescript-eslint/no-require-imports
 const { DatabaseSync } = require('node:sqlite');
 import { CodeGraph } from '../src';
-import { isInitialized, findNearestCodeGraphRoot, resolveServerRoot, planFrontload, hasSchemalessDb, hasForeignDbFile } from '../src/directory';
+import { isInitialized, findNearestCodeGraphRoot, resolveServerRoot, hasSchemalessDb, hasForeignDbFile } from '../src/directory';
 import { ToolHandler } from '../src/mcp/tools';
 
 // A configurable `fs`, so a test can watch which files the probe opens.
@@ -80,7 +80,6 @@ describe('a schema-less codegraph.db is not an initialized project (#1895)', () 
     expect(isInitialized(parent)).toBe(false);
     expect(findNearestCodeGraphRoot(child)).toBeNull();
     expect(resolveServerRoot(child).root).toBeNull();
-    expect(planFrontload(child, 'how does alpha call beta').exploreRoot).toBeNull();
   });
 
   // Root ignores mode bits and Windows has no chmod-based directory permissions.

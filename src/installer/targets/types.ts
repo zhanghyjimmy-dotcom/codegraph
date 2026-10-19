@@ -1,13 +1,13 @@
 /**
  * Agent target abstraction for the installer.
  *
- * Each MCP-capable agent (Claude Code, Cursor, Codex CLI, opencode, ...)
+ * Each MCP-capable agent (Cursor, Codex CLI, opencode, ...)
  * implements this interface so the installer orchestrator can write the
- * right MCP-server config + instructions file + permissions for that
+ * right MCP-server config + instructions file for that
  * agent without baking client-specific paths into core code. Adding a
  * new agent = one new file in `targets/` + one entry in `registry.ts`.
  *
- * Closes the Claude-locked installer issue (upstream #137). The
+ * Closes the single-agent installer issue (upstream #137). The
  * runtime MCP server is already agent-agnostic; this brings the
  * installer to the same surface.
  */
@@ -19,7 +19,7 @@ export type Location = 'global' | 'local';
  * lookup. New targets add a value here when they're added to the
  * registry. Keep these short and lowercase.
  */
-export type TargetId = 'claude' | 'cursor' | 'codex' | 'opencode' | 'hermes' | 'gemini' | 'antigravity' | 'kiro' | 'copilot-vscode' | 'copilot-cli' | 'copilot-jetbrains';
+export type TargetId = 'cursor' | 'codex' | 'opencode' | 'hermes' | 'gemini' | 'antigravity' | 'kiro' | 'copilot-vscode' | 'copilot-cli' | 'copilot-jetbrains';
 
 /**
  * Result of `target.detect(location)`.
@@ -61,22 +61,6 @@ export interface WriteResult {
   notes?: string[];
 }
 
-export interface InstallOptions {
-  /**
-   * Whether to write the agent's permissions / auto-allow surface
-   * (Claude `settings.json`, others where applicable). When the
-   * target has no permissions concept this option is a no-op.
-   */
-  autoAllow: boolean;
-  /**
-   * Front-load prompt hook (Claude `UserPromptSubmit`) that injects
-   * codegraph_explore context for structural prompts. `true` installs it,
-   * `false` removes any prior install (so opt-out round-trips), `undefined`
-   * leaves it untouched. Targets without a prompt-hook concept ignore it.
-   */
-  promptHook?: boolean;
-}
-
 export interface AgentTarget {
   /** Stable id; matches the `TargetId` union. */
   readonly id: TargetId;
@@ -101,7 +85,7 @@ export interface AgentTarget {
    * it has no business touching (issue #1870).
    */
   detect(loc: Location): DetectionResult;
-  install(loc: Location, opts: InstallOptions): WriteResult;
+  install(loc: Location): WriteResult;
   /**
    * Inverse of install. Removes only what install would have written;
    * preserves sibling MCP servers, sibling permissions, and unrelated

@@ -13,9 +13,9 @@ const recipe = fs.readFileSync(path.resolve('scripts/build-bundle.sh'), 'utf8');
 const launcherRecipe = recipe.slice(recipe.indexOf('# 4. Vendored'), recipe.indexOf('# 5. Archive'));
 const archiveRecipe = recipe.slice(recipe.indexOf('# 5. Archive'));
 const roots: string[] = [];
-const env = { ...process.env, CODEGRAPH_TELEMETRY: '0', DO_NOT_TRACK: '1', CODEGRAPH_NO_PROMPT_HOOK: '1' };
+const env = { ...process.env, CODEGRAPH_TELEMETRY: '0', DO_NOT_TRACK: '1' };
 
-function shell(script: string, args: string[] = [], extraEnv: NodeJS.ProcessEnv = {}, input?: string) {
+function shell(script: string, args: string[] = [], extraEnv: NodeJS.ProcessEnv = {}) {
   // A file avoids Windows command-line quoting altering the recipe's printf
   // escapes or our argument fixtures before Bash even reads them.
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'codegraph-shell-'));
@@ -24,7 +24,7 @@ function shell(script: string, args: string[] = [], extraEnv: NodeJS.ProcessEnv 
   const quote = (value: string) => "'" + value.replace(/'/g, "'\\''") + "'";
   fs.writeFileSync(file, `set -- ${args.map(quote).join(' ')}\n${script}`);
   return spawnSync(bash, ['--noprofile', '--norc', file], {
-    encoding: 'utf8', timeout: 30_000, env: { ...env, ...extraEnv }, input,
+    encoding: 'utf8', timeout: 30_000, env: { ...env, ...extraEnv },
   });
 }
 
@@ -41,11 +41,11 @@ function stage(osfam = windows ? 'win32' : process.platform) {
   return { root, bundle };
 }
 
-function invoke(bundle: string, command: string, args: string[] = [], extraEnv: NodeJS.ProcessEnv = {}, input?: string) {
+function invoke(bundle: string, command: string, args: string[] = [], extraEnv: NodeJS.ProcessEnv = {}) {
   const convert = windows ? '$(cygpath -u "$1")' : '$1';
   // Exclude system Node: execution must use the runtime in the bundle.
   return shell(`STAGE="${convert}"\nshift\nPATH="$STAGE/bin:/usr/bin:/bin"\nexport PATH\n${command}`,
-    [bundle, ...args], extraEnv, input);
+    [bundle, ...args], extraEnv);
 }
 
 function probe(bundle: string) {
@@ -81,7 +81,7 @@ describe('bundled launchers (#1278)', () => {
     checkForwarding(stage().bundle);
   });
 
-  it.runIf(windows)('runs the real CLI and prompt hook in Git Bash, and keeps cmd and PowerShell working', () => {
+  it.runIf(windows)('runs the real CLI in Git Bash, and keeps cmd and PowerShell working', () => {
     const { bundle } = stage();
     fs.rmSync(path.join(bundle, 'lib/dist'), { recursive: true });
     fs.symlinkSync(path.resolve('dist'), path.join(bundle, 'lib/dist'), 'junction');
@@ -89,8 +89,6 @@ describe('bundled launchers (#1278)', () => {
     const result = invoke(bundle, 'codegraph --version');
     expect(result.status, result.stderr).toBe(0);
     expect(result.stdout.trim()).toBe(version);
-    const hook = invoke(bundle, 'codegraph prompt-hook', [], {}, '{"prompt":"test"}\n');
-    expect(hook.status, hook.stderr).toBe(0);
     const bin = path.join(bundle, 'bin');
     for (const [exe, args] of [
       ['cmd.exe', ['/d', '/s', '/c', 'codegraph --version']],

@@ -6,7 +6,7 @@ Already installed? Run `codegraph upgrade`
 
 Follow [@getcodegraph](https://x.com/getcodegraph) on X for updates.
 
-### Supercharge Claude Code, Cursor, Codex, OpenCode, Hermes Agent, Gemini, Antigravity, Kiro, and GitHub Copilot with Semantic Code Intelligence
+### Supercharge Cursor, Codex, OpenCode, Hermes Agent, Gemini, Antigravity, Kiro, and GitHub Copilot with Semantic Code Intelligence
 
 **The fastest complete code graph · surgical context · built for how agents actually work · 100% local**
 
@@ -27,7 +27,6 @@ Follow [@getcodegraph](https://x.com/getcodegraph) on X for updates.
 [![macOS](https://img.shields.io/badge/macOS-supported-blue.svg)](#supported-platforms)
 [![Linux](https://img.shields.io/badge/Linux-supported-blue.svg)](#supported-platforms)
 
-[![Claude Code](https://img.shields.io/badge/Claude_Code-supported-blueviolet.svg)](#supported-agents)
 [![Cursor](https://img.shields.io/badge/Cursor-supported-blueviolet.svg)](#supported-agents)
 [![Codex](https://img.shields.io/badge/Codex-supported-blueviolet.svg)](#supported-agents)
 [![opencode](https://img.shields.io/badge/opencode-supported-blueviolet.svg)](#supported-agents)
@@ -105,7 +104,7 @@ In a **new terminal**, run the installer to connect CodeGraph to the agents you 
 codegraph install
 ```
 
-<sub>Detects and auto-configures Claude Code, Cursor, Codex CLI, opencode, Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, and GitHub Copilot (VS Code, Copilot CLI, JetBrains IDEs) — wiring the CodeGraph MCP server into each. **This is the step that connects CodeGraph to your agent;** installing the CLI in step 1 does not do it on its own. It only wires up your agent — it does **not** index any code; building each project's graph is the separate `codegraph init` in step 3. (Shortcut: `npx @colbymchenry/codegraph` downloads and runs this in one go.)</sub>
+<sub>Detects and auto-configures Cursor, Codex CLI, opencode, Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, and GitHub Copilot (VS Code, Copilot CLI, JetBrains IDEs) — wiring the CodeGraph MCP server into each. **This is the step that connects CodeGraph to your agent;** installing the CLI in step 1 does not do it on its own. It only wires up your agent — it does **not** index any code; building each project's graph is the separate `codegraph init` in step 3. (Shortcut: `npx @colbymchenry/codegraph` downloads and runs this in one go.)</sub>
 
 ### 3. Initialize each project
 
@@ -286,7 +285,7 @@ CodeGraph's parsing engine is a **native Rust kernel**: 20 languages — TypeScr
 <details>
 <summary><strong>How auto-syncing works — and why you don't need to run <code>codegraph sync</code> manually</strong></summary>
 
-When your agent (Claude Code, Cursor, Codex, opencode) launches `codegraph serve --mcp`, three layers keep the index in step with your code — and make sure the agent never gets a silent wrong answer in the brief window between an edit and the next sync:
+When your agent (Cursor, Codex, opencode, …) launches `codegraph serve --mcp`, three layers keep the index in step with your code — and make sure the agent never gets a silent wrong answer in the brief window between an edit and the next sync:
 
 1. **File watcher with debounced auto-sync.** A native FSEvents / inotify / ReadDirectoryChangesW watcher captures every source-file create / modify / delete and triggers a re-index after a debounce window (default `2000ms`, tunable via `CODEGRAPH_WATCH_DEBOUNCE_MS`, clamped to `[100ms, 60s]`). Bursts of edits collapse into a single sync.
 
@@ -390,11 +389,10 @@ npx @colbymchenry/codegraph
 ```
 
 The installer will:
-- Ask which agent(s) to configure — auto-detects installed ones from: **Claude Code**, **Cursor**, **Codex CLI**, **opencode**, **Hermes Agent**, **Gemini CLI**, **Antigravity IDE**, **Kiro**, **GitHub Copilot** (VS Code, Copilot CLI, JetBrains IDEs)
+- Ask which agent(s) to configure — auto-detects installed ones from: **Cursor**, **Codex CLI**, **opencode**, **Hermes Agent**, **Gemini CLI**, **Antigravity IDE**, **Kiro**, **GitHub Copilot** (VS Code, Copilot CLI, JetBrains IDEs)
 - Prompt to install `codegraph` on your PATH (so agents can launch the MCP server)
 - Ask whether configs apply to all your projects or just this one
-- Write each chosen agent's MCP server config, plus a small marker-fenced CodeGraph section in the agent's instructions file (`CLAUDE.md` / `AGENTS.md` / `GEMINI.md`) — that's how subagents and non-MCP agents learn the `codegraph explore` command, since the MCP server's own guidance only reaches the main agent. Removed cleanly by `codegraph uninstall`.
-- Set up auto-allow permissions when Claude Code is one of the targets
+- Write each chosen agent's MCP server config, plus a small marker-fenced CodeGraph section in the agent's instructions file (`AGENTS.md` / `GEMINI.md`) — that's how subagents and non-MCP agents learn the `codegraph explore` command, since the MCP server's own guidance only reaches the main agent. Removed cleanly by `codegraph uninstall`.
 
 The installer **wires up your agents only — it does not index your code.** After it finishes, build each project's graph yourself with `codegraph init` (step 3). One global `codegraph install` covers every project; you run `codegraph init` once per project.
 
@@ -403,7 +401,7 @@ The installer **wires up your agents only — it does not index your code.** Aft
 ```bash
 codegraph install --yes                              # auto-detect agents, install global
 codegraph install --yes --init                       # same, then build the current project's index (one-shot bootstrap)
-codegraph install --target=cursor,claude --yes       # explicit target list
+codegraph install --target=cursor,codex --yes        # explicit target list
 codegraph install --target=auto --location=local     # detected agents, project-local
 codegraph install --target=copilot-vscode,copilot-cli,copilot-jetbrains --yes  # GitHub Copilot everywhere
 codegraph install --print-config codex               # print snippet, no file writes
@@ -412,16 +410,15 @@ codegraph install --print-config copilot-vscode      # same, for Copilot in VS C
 
 | Flag | Values | Default |
 |---|---|---|
-| `--target` | `auto`, `all`, `none`, or csv (`claude,cursor,...`) | prompt |
+| `--target` | `auto`, `all`, `none`, or csv (`cursor,codex,...`) | prompt |
 | `--location` | `global`, `local` | prompt |
 | `--yes` | (boolean) | prompt every step |
 | `--init` | (boolean) run `codegraph init` in the current directory after wiring agents | — |
-| `--no-permissions` | (boolean) skip Claude auto-allow list | permissions on |
 | `--print-config <id>` | dump snippet for one agent and exit | — |
 
 ### 2. Restart Your Agent
 
-Restart your agent (Claude Code / Cursor / Codex CLI / opencode / Hermes Agent / Gemini CLI / Antigravity IDE / Kiro / VS Code, the Copilot CLI, or your JetBrains IDE for GitHub Copilot) for the MCP server to load.
+Restart your agent (Cursor / Codex CLI / opencode / Hermes Agent / Gemini CLI / Antigravity IDE / Kiro / VS Code, the Copilot CLI, or your JetBrains IDE for GitHub Copilot) for the MCP server to load.
 
 ### 3. Initialize Projects
 
@@ -442,34 +439,20 @@ That's it — your agent will use CodeGraph tools automatically when a `.codegra
 npm install -g @colbymchenry/codegraph
 ```
 
-**Add to `~/.claude.json`:**
+**Add to your agent's MCP config (e.g. `~/.cursor/mcp.json`):**
 ```json
 {
   "mcpServers": {
     "codegraph": {
       "type": "stdio",
       "command": "codegraph",
-      "args": ["serve", "--mcp"],
-      "alwaysLoad": true
+      "args": ["serve", "--mcp"]
     }
   }
 }
 ```
 
-`alwaysLoad` keeps `codegraph_explore` loaded from the first prompt. Claude Code otherwise defers every MCP tool behind a tool-search step, so a fresh session sees only the tool's name until the model searches for it.
-
-**Add to `~/.claude/settings.json` (optional, for auto-allow):**
-```json
-{
-  "permissions": {
-    "allow": [
-      "mcp__codegraph__*"
-    ]
-  }
-}
-```
-
-<sub>One wildcard auto-approves every CodeGraph tool — `codegraph_explore` is the only one listed by default, but if you re-enable others via `CODEGRAPH_MCP_TOOLS` they're already permitted, no prompt.</sub>
+<sub>`codegraph install --print-config <id>` prints the exact snippet for any supported agent.</sub>
 
 </details>
 
@@ -493,7 +476,7 @@ The exact text is `src/mcp/server-instructions.ts` — the single source of trut
 
 ```
 ┌───────────────────────────────────────────────────────────────────┐
-│                            Claude Code                            │
+│                          AI coding agent                          │
 │                                                                   │
 │   "How does a request reach the database?"                        │
 │       calls CodeGraph tools directly — no Explore sub-agent       │
@@ -794,7 +777,6 @@ The interactive installer auto-detects and configures each of these — wiring u
 the MCP server (which delivers its own usage guidance, so no instructions file
 is written):
 
-- **Claude Code**
 - **Cursor**
 - **Codex CLI**
 - **opencode** — MCP entry is OpenCode 2's `mcp.servers.codegraph` with `codemode: false` (keeps `codegraph_explore` on the native tool list; `codegraph install` migrates the older `mcp.codegraph` shape)
@@ -905,7 +887,7 @@ MIT
 
 <div align="center">
 
-**Made for AI coding agents — Claude Code, Cursor, Codex CLI, opencode, Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, and GitHub Copilot**
+**Made for AI coding agents — Cursor, Codex CLI, opencode, Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, and GitHub Copilot**
 
 [Report Bug](https://github.com/colbymchenry/codegraph/issues) · [Request Feature](https://github.com/colbymchenry/codegraph/issues)
 

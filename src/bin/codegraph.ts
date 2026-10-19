@@ -53,8 +53,7 @@ try {
 import { Command } from 'commander';
 import * as path from 'path';
 import * as fs from 'fs';
-import { getCodeGraphDir, isInitialized, hasSchemalessDb, hasForeignDbFile, unsafeIndexRootReason, findNearestCodeGraphRoot, planFrontload, isTaskNotification, isAgentMessage, hasStructuralKeyword, extractCodeTokens, capPromptHookInjection, codeGraphDirName, DEFAULT_CODEGRAPH_DIR } from '../directory';
-import { extractProseCandidates } from '../search/identifier-segments';
+import { getCodeGraphDir, isInitialized, hasSchemalessDb, hasForeignDbFile, unsafeIndexRootReason, findNearestCodeGraphRoot, codeGraphDirName, DEFAULT_CODEGRAPH_DIR } from '../directory';
 import { detectWorktreeIndexMismatch, worktreeMismatchWarning } from '../sync/worktree';
 import { createShimmerProgress } from '../ui/shimmer-progress';
 import { getGlyphs } from '../ui/glyphs';
@@ -1478,177 +1477,6 @@ program
   });
 
 /**
- * codegraph prompt-hook  (hidden)
- *
- * A Claude Code `UserPromptSubmit` hook entry point. Reads `{prompt, cwd}` JSON
- * on stdin; for a structural/flow/impact prompt it runs `codegraph_explore` on
- * the indexed project and prints the result to stdout, which Claude injects into
- * the agent's context — so the agent's reflex grep/read has nothing left to find
- * and reliably uses CodeGraph (the adoption problem). Installed by the installer
- * into Claude's settings.json (opt-in, default-yes).
- *
- * LOAD-BEARING: this must NEVER break the user's prompt. Every failure path —
- * kill-switch, non-structural prompt, no index, engine error — exits 0 with no
- * output. The only effect is additive context when it can confidently provide it.
- */
-program
-  .command('prompt-hook', { hidden: true })
-  .description('Claude UserPromptSubmit hook: inject CodeGraph context for structural prompts (reads {prompt,cwd} JSON on stdin)')
-  .action(async () => {
-    try {
-      // Kill-switch: lets a user disable the nudge without uninstalling /
-      // editing settings.json (CI, low-power machines, personal preference).
-      if (process.env.CODEGRAPH_NO_PROMPT_HOOK === '1' || process.env.CODEGRAPH_PROMPT_HOOK === '0') return;
-      if (process.stdin.isTTY) return; // invoked by hand, no piped payload
-
-      const raw = await new Promise<string>((resolve) => {
-        let data = '';
-        process.stdin.setEncoding('utf8');
-        process.stdin.on('data', (c) => { data += c; });
-        process.stdin.on('end', () => resolve(data));
-        process.stdin.on('error', () => resolve(data));
-      });
-
-      let input: { prompt?: string; cwd?: string } = {};
-      try { input = JSON.parse(raw); } catch { return; }
-      const prompt = String(input.prompt || '');
-      // System-injected task notifications and subagent hand-backs are not
-      // user prompts: exit before any project lookup or explore work (#1832,
-      // #2184).
-      if (isTaskNotification(prompt) || isAgentMessage(prompt)) return;
-
-      // Gate telemetry: how often each tier fires vs. no-ops — counter names
-      // only, NEVER prompt content (see TELEMETRY.md). This is the data that
-      // turns "is the gate any good" from vibes into a measured recall rate.
-      const gate = (outcome: string): void => {
-        try { getTelemetry().recordUsage('cli_command', `prompt-hook-gate-${outcome}`, true); } catch { /* never break the hook */ }
-      };
-
-      // Gate, tiered by confidence (#994, #1126):
-      //   HIGH   — a structural keyword (any covered language), or a code-shaped
-      //            token verified in the index → full explore injection.
-      //   MEDIUM — no keyword/token, but prose words match indexed symbol-name
-      //            SEGMENTS ("state machine" → OrderStateMachine, in any
-      //            language): inject a short list of the matching symbols and
-      //            let the AGENT write the explore query — the graph-derived
-      //            tier, no vocabulary involved.
-      //   silent — nothing verified. Every other prompt ("fix this typo")
-      //            stays a zero-cost no-op.
-      // Keywords fire on their own; a token or prose word is only a CANDIDATE
-      // verified against the graph below, so a tech brand ("JavaScript") that
-      // merely looks like code doesn't inject spurious context.
-      const keyworded = hasStructuralKeyword(prompt);
-      const codeTokens = keyworded ? [] : extractCodeTokens(prompt);
-      const proseWords = keyworded ? [] : extractProseCandidates(prompt);
-      if (!keyworded && codeTokens.length === 0 && proseWords.length === 0) { gate('noop-shape'); return; }
-
-      // Decide what to inject, shaped by WHERE the index(es) are: the nearest
-      // indexed ancestor of cwd, or — when cwd is an un-indexed workspace root
-      // whose indexed project(s) live in sub-dirs (the monorepo case, #964) —
-      // the sub-project the prompt points at, plus a `projectPath` nudge for any
-      // others. Without the down-scan the hook injected nothing at a monorepo
-      // root (it only walked up), so the validated adoption lever never fired
-      // exactly where the agent most needs it.
-      const plan = planFrontload(String(input.cwd || process.cwd()), prompt);
-      if (!plan.exploreRoot && plan.nudgeProjects.length === 0) { gate('noop-no-index'); return; } // nothing reachable — the agent's normal tools apply
-
-      // A "pass projectPath" line for indexed sub-projects we did NOT front-load.
-      // Follow-up codegraph_explore calls against a sub-project (cwd isn't its
-      // index root) need an explicit projectPath, so spell it out.
-      const nudge = (projects: string[], lead: string): string =>
-        `${lead}\n${projects.map((p) => `  - projectPath: "${p}"`).join('\n')}\n`;
-
-      if (plan.exploreRoot) {
-        const { default: CodeGraph } = await loadCodeGraph();
-        const cg = await CodeGraph.open(plan.exploreRoot);
-        try {
-          const others = plan.nudgeProjects.length
-            ? `\n${nudge(plan.nudgeProjects, 'Other indexed projects in this workspace — pass projectPath to query them:')}`
-            : '';
-
-          // Tier decision against THIS index (issue #994 follow-up: candidates
-          // must be real here — a brand name or prose about another domain
-          // must not inject). Keyword-bearing prompts skip verification — the
-          // keyword is signal enough.
-          const tokenVerified = !keyworded && codeTokens.some((t) => cg.getNodesByName(t).length > 0);
-          if (keyworded || tokenVerified) {
-            const { ToolHandler } = await import('../mcp/tools');
-            const handler = new ToolHandler(cg);
-            const result = await handler.execute('codegraph_explore', { query: prompt });
-            const text = result.content[0]?.text ?? '';
-            if (!result.isError && text.trim()) {
-              // Cap the injection so a large-repo explore can't flood the prompt.
-              // Claude Code shows hook stdout inline only up to 10,000 characters;
-              // above that it persists the output to a file and the model sees a
-              // 2 KB preview (#1694). PROMPT_HOOK_INJECTION_MAX (9,000) leaves
-              // room for the wrapper and the projectPath nudge lines below.
-              const body = capPromptHookInjection(text);
-              // For a front-loaded SUB-project, a follow-up explore needs its path.
-              const more = plan.viaSubScan
-                ? `call codegraph_explore with projectPath: "${plan.exploreRoot}" for more`
-                : 'call codegraph_explore for more';
-              process.stdout.write(
-                `<codegraph_context note="Structural context from CodeGraph for this prompt — treat returned source as already read; ${more}.">\n${body}${others}\n</codegraph_context>\n`,
-              );
-              gate(keyworded ? 'high-keyword' : 'high-token');
-            } else {
-              // A high-* outcome must mean context was actually delivered —
-              // the funnel's noop-vs-high split is how gate recall is
-              // measured (#1143). An explore error or empty result is a
-              // delivery failure, not a gate success.
-              gate(keyworded ? 'noop-explore-keyword' : 'noop-explore-token');
-            }
-            return;
-          }
-
-          // MEDIUM: prose words → symbol-name segments, co-occurrence/rarity
-          // scored, each hit re-verified to exist (see getSegmentMatches). The
-          // payload names the symbols but does NOT run explore — the agent owns
-          // the query where the hook's confidence is only "these are related".
-          //
-          // A database indexed before the vocab table existed starts with it
-          // EMPTY, and only sync() backfills it — which this hook never runs
-          // (#1142). Heal it here: on a populated vocab this is one SELECT;
-          // the actual backfill is a one-time batched pass whose cost the MCP
-          // server's own catch-up sync usually pays first (it runs at every
-          // session start). A distinct noop outcome keeps a dormant vocab
-          // from polluting the noop-unverified recall signal.
-          const vocabReady = await cg.healSegmentVocabIfEmpty().catch(() => false);
-          if (!vocabReady) { gate('noop-vocab-empty'); return; }
-          const related = cg.getSegmentMatches(proseWords);
-          if (related.length === 0) { gate('noop-unverified'); return; }
-          const lines = related
-            .map((m) => `  - ${m.name} (${m.kind} — ${m.filePath}:${m.startLine})`)
-            .join('\n');
-          const exampleQuery = related.slice(0, 3).map((m) => m.name).join(' ');
-          const projectHint = plan.viaSubScan ? ` with projectPath: "${plan.exploreRoot}"` : '';
-          process.stdout.write(
-            `<codegraph_context note="CodeGraph found indexed symbols matching this prompt — query the graph before searching files.">\n` +
-            `This project's CodeGraph index contains symbols matching this request:\n${lines}\n` +
-            `Call codegraph_explore ONCE${projectHint} with the relevant names in one query (e.g. "${exampleQuery}") ` +
-            `to get their source, call paths, and blast radius — cheaper and more complete than Read/Grep.\n${others}` +
-            `</codegraph_context>\n`,
-          );
-          gate('medium-segment');
-        } finally {
-          cg.destroy();
-        }
-      } else {
-        // Several indexed sub-projects, none a clear match — don't guess; tell
-        // the agent they exist and how to query one.
-        process.stdout.write(
-          `<codegraph_context note="CodeGraph is available for this workspace's indexed sub-projects — query one by passing projectPath to codegraph_explore.">\n` +
-          nudge(plan.nudgeProjects, "This workspace's CodeGraph indexes live in sub-projects. To use CodeGraph, call codegraph_explore with the projectPath of the relevant one:") +
-          `</codegraph_context>\n`,
-        );
-        gate('nudge-projects');
-      }
-    } catch {
-      // Degradable by contract: never surface an error to the prompt pipeline.
-    }
-  });
-
-/**
  * codegraph node [name]
  *
  * The CLI face of the MCP codegraph_node tool: one symbol's source +
@@ -2227,7 +2055,7 @@ program
         // ever fires for a person who typed it.
         if (process.stdin.isTTY && !process.env.CODEGRAPH_DAEMON_INTERNAL) {
           console.error(chalk.bold('\nCodeGraph MCP server\n'));
-          console.error("This is the MCP server your AI agent (Claude Code, Cursor, Codex, opencode, …)");
+          console.error("This is the MCP server your AI agent (Cursor, Codex, opencode, …)");
           console.error("starts automatically — you don't run it yourself.");
           console.error(`\nIt's already wired up by ${chalk.cyan('codegraph install')}. To check on things:`);
           console.error(`  ${chalk.cyan('codegraph status')}   ${chalk.dim('— is this project indexed and healthy?')}`);
@@ -2245,7 +2073,7 @@ program
         // Use stderr so stdout stays clean for any piped/stdio usage.
         console.error(chalk.bold('\nCodeGraph MCP Server\n'));
         console.error(chalk.blue(getGlyphs().info) + ' Use --mcp flag to start the MCP server');
-        console.error('\nTo use with Claude Code, add to your MCP configuration:');
+        console.error('\nTo use with an MCP client, add to its MCP configuration:');
         console.error(chalk.dim(`
 {
   "mcpServers": {
@@ -2689,12 +2517,11 @@ program
  */
 program
   .command('install')
-  .description('Install codegraph MCP server into one or more agents (Claude Code, Cursor, Codex CLI, opencode, Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, GitHub Copilot)')
+  .description('Install codegraph MCP server into one or more agents (Cursor, Codex CLI, opencode, Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, GitHub Copilot)')
   .option('-t, --target <ids>', 'Target agent(s): comma-separated ids, or "auto"|"all"|"none". Default: prompt')
   .option('-l, --location <where>', 'Install location: "global" or "local". Default: prompt')
-  .option('-y, --yes', 'Non-interactive: defaults to --location=global --target=auto, auto-allow on')
+  .option('-y, --yes', 'Non-interactive: defaults to --location=global --target=auto')
   .option('-i, --init', 'After wiring agents, also run `codegraph init` in the current directory — builds this project’s index, so install + index is one command (combine with --yes for an unattended bootstrap)')
-  .option('--no-permissions', 'Skip writing the auto-allow permissions list (Claude Code only)')
   .option('--print-config <id>', 'Print MCP config snippet for the named agent and exit (no file writes)')
   .option('--refresh', 'Rewrite what previous installs configured, for already-configured agents only (never adds new ones). Run automatically by `codegraph upgrade`')
   .action(async (opts: {
@@ -2702,7 +2529,6 @@ program
     location?: string;
     yes?: boolean;
     init?: boolean;
-    permissions?: boolean;
     printConfig?: string;
     refresh?: boolean;
   }) => {
@@ -2723,8 +2549,7 @@ program
     // installs configured (instructions section, MCP entry, legacy-hook
     // cleanups) for already-configured agents, so those surfaces match
     // THIS binary's templates. Skips everything else — never a first
-    // install, never touches permissions or the prompt hook. Sweeps both
-    // locations unless --location narrows it.
+    // install. Sweeps both locations unless --location narrows it.
     if (opts.refresh) {
       const { refreshTargets } = await import('../installer');
       const { ALL_TARGETS } = await import('../installer/targets/registry');
@@ -2756,23 +2581,9 @@ program
       process.exit(1);
     }
     try {
-      // Commander's `--no-permissions` makes `opts.permissions === false`;
-      // omitting the flag leaves it `true` (the positive-form default).
-      // We MUST treat the default-true as "user did not override — let
-      // the orchestrator prompt" and only forward an explicit `false`
-      // (or `true` when --yes implies it). Otherwise the auto-allow
-      // prompt is silently skipped on every interactive run.
-      const explicitNoPermissions = opts.permissions === false;
-      const autoAllow: boolean | undefined = explicitNoPermissions
-        ? false
-        : opts.yes
-          ? true
-          : undefined;
-
       await runInstallerWithOptions({
         target: opts.target,
         location: opts.location as 'global' | 'local' | undefined,
-        autoAllow,
         yes: opts.yes,
       });
     } catch (err) {
@@ -2796,14 +2607,14 @@ program
 /**
  * codegraph uninstall
  *
- * Inverse of `install`. Removes the codegraph MCP server entry,
- * instructions block, and permissions from every agent (or a
+ * Inverse of `install`. Removes the codegraph MCP server entry and
+ * instructions block from every agent (or a
  * `--target` subset). Prompts global-vs-local when not given. Does NOT
  * delete the `.codegraph/` index — that's `codegraph uninit`.
  */
 program
   .command('uninstall')
-  .description('Remove codegraph from your agents (Claude Code, Cursor, Codex CLI, opencode, Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, GitHub Copilot)')
+  .description('Remove codegraph from your agents (Cursor, Codex CLI, opencode, Hermes Agent, Gemini CLI, Antigravity IDE, Kiro, GitHub Copilot)')
   .option('-t, --target <ids>', 'Target agent(s): comma-separated ids, or "all". Default: all')
   .option('-l, --location <where>', 'Uninstall location: "global" or "local". Default: prompt')
   .option('-y, --yes', 'Non-interactive: defaults to --location=global --target=all')
@@ -2906,7 +2717,6 @@ program
         run: up.defaultRun,
         capture: up.defaultCapture,
         hasCommand: up.hasCommand,
-        wirePromptHook: up.defaultWirePromptHook,
         log: (m: string) => console.log(m),
         warn: (m: string) => warn(m),
         error: (m: string) => error(m),

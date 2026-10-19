@@ -60,7 +60,6 @@ import { execSync } from 'child_process';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -184,7 +183,7 @@ class AntigravityTarget implements AgentTarget {
     return { installed, alreadyConfigured, configPath: file };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     if (loc !== 'global') {
       return {
         files: [],

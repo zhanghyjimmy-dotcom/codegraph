@@ -769,7 +769,7 @@ export class QueryBuilder {
   }
 
   // ===========================================================================
-  // Name-segment vocabulary (prompt-hook graph-derived gate)
+  // Name-segment vocabulary (graph-derived prose → symbol lookup)
   // ===========================================================================
 
   /** Wipe the segment vocabulary. A full index calls this at its start; the
@@ -813,7 +813,7 @@ export class QueryBuilder {
 
   /**
    * Names whose segments cover at least `minWords` distinct PROMPT WORDS —
-   * the co-occurrence probe behind the prompt hook's medium tier: the words
+   * the co-occurrence probe behind getSegmentMatches: the words
    * "state" and "machine" both being segments of `OrderStateMachine` is strong
    * evidence the prompt names that symbol in prose. Ordered by coverage.
    *

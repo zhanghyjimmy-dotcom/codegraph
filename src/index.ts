@@ -1983,7 +1983,7 @@ export class CodeGraph {
   }
 
   /**
-   * Graph-derived prompt matching for the front-load hook's MEDIUM tier:
+   * Graph-derived prose matching:
    * which indexed symbols do these prose words name? "state machine des
    * commandes" → `OrderStateMachine`, in any human language whose technical
    * nouns are Latin script — no keyword list involved.
@@ -2094,10 +2094,9 @@ export class CodeGraph {
   }
 
   /**
-   * One-shot upgrade heal for callers that open the graph WITHOUT syncing —
-   * concretely the prompt hook, whose MEDIUM tier reads the segment
-   * vocabulary: a database migrated from before the vocab table existed
-   * starts with it empty, and the only other backfill lives inside `sync()`,
+   * One-shot upgrade heal for callers that open the graph WITHOUT syncing
+   * and read the segment vocabulary: a database migrated from before the
+   * vocab table existed starts with it empty, and the only other backfill lives inside `sync()`,
    * which such callers never run (#1142). Returns true when the vocab is
    * usable (already populated — the overwhelmingly common one-SELECT case —
    * or healed here); false when it isn't (empty graph, or another process
@@ -2534,8 +2533,8 @@ export class CodeGraph {
     // Segment-vocab supplement: FTS keeps camelCase names as single tokens,
     // so a word-level query ("auto-scroll to bottom") can never reach
     // `pinFeedIfNearBottom` through search alone. Resolve the query's words
-    // against name_segment_vocab (same precision rules as the prompt hook:
-    // co-occurrence, else rare singles, verified against live nodes) and hand
+    // against name_segment_vocab (co-occurrence, else rare singles,
+    // verified against live nodes) and hand
     // the names down as dampened exact-name seeds. Callers that pass their
     // own seedNames keep them; failures degrade to no supplement.
     let seedNames = options?.seedNames;
@@ -2557,7 +2556,7 @@ export class CodeGraph {
    * 1. Running FTS search to find entry points
    * 2. Expanding the graph around entry points
    * 3. Extracting code blocks for key nodes
-   * 4. Formatting output for Claude
+   * 4. Formatting output for the agent
    *
    * @param input - Task description (string or {title, description})
    * @param options - Build options (maxNodes, includeCode, format, etc.)

@@ -9,7 +9,7 @@
  * Three rules shape everything here, and all three come from the same place —
  * an insufficient-feeling response is what sends an agent to Read, and one or
  * two of those early in a session teach it to abandon codegraph entirely
- * (CLAUDE.md):
+ * (AGENTS.md):
  *
  *   1. **A pointer, never a bare omission.** Removed source is replaced by a
  *      back-reference naming the file, the symbols, and the line span, worded so

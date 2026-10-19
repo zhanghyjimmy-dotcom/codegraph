@@ -3,7 +3,7 @@
  *
  *   - MCP server entry to `~/.kiro/settings/mcp.json` (global) or
  *     `./.kiro/settings/mcp.json` (local). Standard `mcpServers.codegraph`
- *     shape, same as Claude / Cursor / Gemini.
+ *     shape, same as Cursor / Gemini.
  *   - Instructions to `~/.kiro/steering/codegraph.md` (global) or
  *     `./.kiro/steering/codegraph.md` (local). Kiro's "steering" system
  *     loads every `*.md` file in the steering dir as agent context, so
@@ -12,8 +12,7 @@
  *     it on uninstall.
  *
  * No permissions concept — Kiro gates tool invocations through its own
- * UI prompts rather than an external allowlist. `autoAllow` is silently
- * ignored.
+ * UI prompts rather than an external allowlist.
  *
  * Paths are identical on macOS / Linux / Windows because Kiro resolves
  * its config root from `os.homedir()` on all three (Windows `~` →
@@ -29,7 +28,6 @@ import * as os from 'os';
 import {
   AgentTarget,
   DetectionResult,
-  InstallOptions,
   Location,
   WriteResult,
 } from './types';
@@ -71,7 +69,7 @@ class KiroTarget implements AgentTarget {
     return { installed, alreadyConfigured, configPath: file };
   }
 
-  install(loc: Location, _opts: InstallOptions): WriteResult {
+  install(loc: Location): WriteResult {
     const files: WriteResult['files'] = [];
     files.push(writeMcpEntry(loc));
 

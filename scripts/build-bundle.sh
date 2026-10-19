@@ -112,7 +112,7 @@ if [ "$OSFAM" = "win32" ]; then
   cp "$NODE_BIN" "$STAGE/node.exe"
   printf '@"%%~dp0..\\node.exe" --liftoff-only --disable-warning=ExperimentalWarning "%%~dp0..\\lib\\dist\\bin\\codegraph.js" %%*\r\n' \
     > "$STAGE/bin/codegraph.cmd"
-  # Git Bash (including Claude Code hooks) does not resolve .cmd via PATHEXT.
+  # Git Bash does not resolve .cmd via PATHEXT.
   cat > "$STAGE/bin/codegraph" <<'LAUNCH'
 #!/bin/sh
 DIR="$(cd "$(dirname "$0")/.." && pwd)"

@@ -2,8 +2,6 @@
  * Sync Module Tests
  *
  * Tests for sync functionality (incremental updates).
- * Note: Git hooks functionality has been removed in favor of codegraph's
- * Claude Code hooks integration.
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';

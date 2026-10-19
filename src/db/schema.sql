@@ -142,7 +142,7 @@ CREATE TRIGGER IF NOT EXISTS nodes_au AFTER UPDATE ON nodes BEGIN
     VALUES (NEW.rowid, NEW.id, NEW.name, NEW.qualified_name, NEW.docstring, NEW.signature);
 END;
 
--- Prose-word → symbol-name lookup for the prompt hook's graph-derived gate.
+-- Prose-word → symbol-name lookup (graph-derived prose matching).
 -- One row per (segment, name): segment is a lowercased word of a symbol name
 -- ("OrderStateMachine" → order, state, machine — see identifier-segments.ts),
 -- which lets natural-language prompt words be verified against the graph in

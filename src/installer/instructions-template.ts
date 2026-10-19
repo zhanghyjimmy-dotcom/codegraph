@@ -1,6 +1,6 @@
 /**
  * The marker-fenced agent-instructions block the installer writes into each
- * agent's instructions file (CLAUDE.md / AGENTS.md / GEMINI.md).
+ * agent's instructions file (AGENTS.md / GEMINI.md).
  *
  * History: pre-#529 the installer wrote a full usage playbook here, which
  * duplicated the MCP `initialize` instructions for the main agent — so it
@@ -33,7 +33,7 @@ export const CODEGRAPH_SECTION_END = '<!-- CODEGRAPH_END -->';
  * The full block, markers included, exactly as written to disk.
  *
  * The wording is deliberately CONDITIONAL ("in repositories indexed by…"):
- * a global install writes this into a user-scope file (~/.claude/CLAUDE.md,
+ * a global install writes this into a user-scope file (~/.gemini/GEMINI.md,
  * ~/.codex/AGENTS.md) that applies to every project the user opens —
  * including unindexed ones, where an unconditional "this repository is
  * indexed" claim would send subagents into failing codegraph calls (the
