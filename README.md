@@ -439,14 +439,14 @@ That's it — your agent will use CodeGraph tools automatically when a `.codegra
 npm install -g @colbymchenry/codegraph
 ```
 
-**Add to your agent's MCP config (e.g. `~/.cursor/mcp.json`):**
+**For Cursor, add to `~/.cursor/mcp.json` (the workspace path lets Cursor find the project's index):**
 ```json
 {
   "mcpServers": {
     "codegraph": {
       "type": "stdio",
       "command": "codegraph",
-      "args": ["serve", "--mcp"]
+      "args": ["serve", "--mcp", "--path", "${workspaceFolder}"]
     }
   }
 }

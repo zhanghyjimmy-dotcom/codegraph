@@ -14,7 +14,7 @@ and adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ### Breaking Changes
 
-- Claude Code is no longer supported: `codegraph install` and upgrades no longer write Claude Code's MCP config, permissions or prompt hook, and the `prompt-hook` command is gone — if you set up Claude Code with an earlier version, remove the `codegraph` entries from `~/.claude.json` (or `.mcp.json`) and the `codegraph prompt-hook` hook from `~/.claude/settings.json`.
+- Claude Code is no longer supported: `codegraph install` and upgrades no longer write Claude Code's MCP config, permissions or prompt hook, and the `prompt-hook` command is gone. For prior installs, remove only CodeGraph's MCP entries from `~/.claude.json` (or `$CLAUDE_CONFIG_DIR/.claude.json` for a custom global profile) and the project-local `.mcp.json`; remove only CodeGraph's `UserPromptSubmit` hooks from `~/.claude/settings.json`, `<project>/.claude/settings.json`, or `$CLAUDE_CONFIG_DIR/settings.json` as applicable. Hook commands were `codegraph prompt-hook` and `codegraph.cmd prompt-hook` (Windows).
 
 ### Fixes
 
